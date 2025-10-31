@@ -1,7 +1,8 @@
 import numpy as np
 import plotly.graph_objects as go
 from variables import figure_font_size, x, y
-
+#from save_doa import saveDOA
+#import websockets
 
 def plot_doa(app, web_interface, doa_fig):
     if web_interface.reset_doa_graph_flag:
@@ -93,6 +94,7 @@ def plot_doa(app, web_interface, doa_fig):
             result = web_interface.doa_results[0]
 
             update_data = dict(x=[thetas], y=[result])
+            #saveDOA(web_interface.doas[0], str(result))
 
             if web_interface._doa_fig_type == "Polar":
                 thetas = np.append(web_interface.doa_thetas, web_interface.doa_thetas[0])

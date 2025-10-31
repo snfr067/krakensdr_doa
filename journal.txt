@@ -1,0 +1,101 @@
+-- Journal begins at Thu 2022-04-14 06:55:34 BST, ends at Thu 2025-10-30 08:22:57 GMT. --
+Oct 30 07:59:14 krakensdr sh[709]: Web Interface Running at 0.0.0.0:8080
+Oct 30 07:59:14 krakensdr sh[709]: Data Out Server Running at 0.0.0.0:8081
+Oct 30 07:59:14 krakensdr sudo[705]: pam_unix(sudo:session): session closed for user root
+Oct 30 07:59:14 krakensdr sh[545]: TAK Server Installed
+Oct 30 07:59:14 krakensdr sudo[718]:     root : PWD=/home/krakenrf/krakensdr_doa/krakensdr_doa ; USER=root ; COMMAND=/usr/bin/php -S 0.0.0.0:8081 -t _share
+Oct 30 07:59:14 krakensdr sudo[718]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 07:59:15 krakensdr systemd[1]: Started Start KrakenSDR Code.
+Oct 30 08:17:48 krakensdr systemd[1]: Stopping Start KrakenSDR Code...
+Oct 30 08:17:48 krakensdr systemd[1]: krakensdr.service: Succeeded.
+Oct 30 08:17:48 krakensdr systemd[1]: Stopped Start KrakenSDR Code.
+Oct 30 08:17:48 krakensdr systemd[1]: krakensdr.service: Consumed 1min 16.327s CPU time.
+Oct 30 08:17:48 krakensdr systemd[1]: Starting Start KrakenSDR Code...
+Oct 30 08:17:51 krakensdr sh[1127]: Shut down DAQ chain ..
+Oct 30 08:17:51 krakensdr sudo[1128]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/pkill -64 rtl_daq.out
+Oct 30 08:17:51 krakensdr sudo[1128]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1128]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1135]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/kill -64
+Oct 30 08:17:52 krakensdr sudo[1135]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1135]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1137]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/pkill -64 sync.out
+Oct 30 08:17:52 krakensdr sudo[1137]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1137]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1139]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/pkill -64 decimate.out
+Oct 30 08:17:52 krakensdr sudo[1139]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1139]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1141]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/pkill -64 rebuffer.out
+Oct 30 08:17:52 krakensdr sudo[1141]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1141]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1147]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/kill -64
+Oct 30 08:17:52 krakensdr sudo[1147]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1147]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1153]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/kill -64
+Oct 30 08:17:52 krakensdr sudo[1153]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1153]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1159]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/kill -64
+Oct 30 08:17:52 krakensdr sudo[1159]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1159]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1161]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/pkill -64 iq_server.out
+Oct 30 08:17:52 krakensdr sudo[1161]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1161]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1169]:     root : PWD=/home/krakenrf/krakensdr_doa/krakensdr_doa ; USER=root ; COMMAND=/usr/bin/kill -64
+Oct 30 08:17:52 krakensdr sudo[1169]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1169]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1175]:     root : PWD=/home/krakenrf/krakensdr_doa/krakensdr_doa ; USER=root ; COMMAND=/usr/bin/kill -64 1008 1013
+Oct 30 08:17:52 krakensdr sudo[1175]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1175]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1177]:     root : PWD=/home/krakenrf/krakensdr_doa/krakensdr_doa ; USER=root ; COMMAND=/usr/bin/pkill -f node
+Oct 30 08:17:52 krakensdr sudo[1177]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1177]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1179]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/env PATH=/home/krakenrf/miniforge3/envs/kraken/bin:/home/krakenrf/miniforge3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ./daq_start_sm.sh
+Oct 30 08:17:52 krakensdr sudo[1179]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sh[1180]: Config file check bypassed [ WARNING ]
+Oct 30 08:17:52 krakensdr sudo[1181]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/sbin/sysctl -w kernel.sched_rt_runtime_us=-1
+Oct 30 08:17:52 krakensdr sudo[1181]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sh[1182]: kernel.sched_rt_runtime_us = -1
+Oct 30 08:17:52 krakensdr sudo[1181]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1201]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/sh -c echo 0 > /sys/module/usbcore/parameters/usbfs_memory_mb
+Oct 30 08:17:52 krakensdr sudo[1201]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1201]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:52 krakensdr sudo[1204]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/tee /proc/sys/vm/drop_caches
+Oct 30 08:17:52 krakensdr sudo[1204]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:52 krakensdr sudo[1204]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:56 krakensdr sh[1209]: Desig FIR filter with the following parameters:
+Oct 30 08:17:56 krakensdr sh[1209]: Decimation ratio: 1
+Oct 30 08:17:56 krakensdr sh[1209]: Bandwidth: 1.00
+Oct 30 08:17:56 krakensdr sh[1209]: Tap size: 1
+Oct 30 08:17:56 krakensdr sh[1209]: Window function: hann
+Oct 30 08:17:56 krakensdr sh[1209]: FIR filter ready
+Oct 30 08:17:56 krakensdr sh[1209]: Transfer funcfion is exported to :  _logs/Decimator_filter_transfer.html
+Oct 30 08:17:56 krakensdr sh[1209]: Coefficients are exported to:  _data_control/fir_coeffs.txt
+Oct 30 08:17:56 krakensdr sh[1180]: Starting DAQ Subsystem
+Oct 30 08:17:56 krakensdr sh[1180]: Output data interface: Shared memory
+Oct 30 08:17:56 krakensdr sh[1180]:       )  (
+Oct 30 08:17:56 krakensdr sh[1180]:       (   ) )
+Oct 30 08:17:56 krakensdr sh[1180]:        ) ( (
+Oct 30 08:17:56 krakensdr sh[1180]:      _______)_
+Oct 30 08:17:56 krakensdr sh[1180]:   .-'---------|
+Oct 30 08:17:56 krakensdr sh[1180]:  (  |/\/\/\/\/|
+Oct 30 08:17:56 krakensdr sh[1180]:   '-./\/\/\/\/|
+Oct 30 08:17:56 krakensdr sh[1180]:     '_________'
+Oct 30 08:17:56 krakensdr sh[1180]:      '-------'
+Oct 30 08:17:56 krakensdr sh[1180]:                
+Oct 30 08:17:56 krakensdr sh[1180]: Have a coffee watch radar
+Oct 30 08:17:56 krakensdr sudo[1179]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:56 krakensdr sudo[1218]:     root : PWD=/home/krakenrf/krakensdr_doa/heimdall_daq_fw/Firmware ; USER=root ; COMMAND=/usr/bin/env PATH=/home/krakenrf/miniforge3/envs/kraken/bin:/home/krakenrf/miniforge3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 _daq_core/hw_controller.py
+Oct 30 08:17:56 krakensdr sudo[1218]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:57 krakensdr sudo[1257]:     root : PWD=/home/krakenrf/krakensdr_doa/krakensdr_doa ; USER=root ; COMMAND=/usr/bin/env PATH=/home/krakenrf/miniforge3/envs/kraken/bin:/home/krakenrf/miniforge3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ./gui_run.sh
+Oct 30 08:17:57 krakensdr sudo[1257]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:57 krakensdr sh[1258]: Remote Control is DISABLED
+Oct 30 08:17:57 krakensdr sh[1258]: To enable Remote Control please install miniserve and jq.
+Oct 30 08:17:57 krakensdr sh[1258]: Then change 'en_remote_control' setting in _share/settings.json file to 'true'.
+Oct 30 08:17:57 krakensdr sh[1258]: Finally, apply settings by restarting the software.
+Oct 30 08:17:57 krakensdr sh[1258]: Starting KrakenSDR Direction Finder
+Oct 30 08:17:57 krakensdr sh[1258]: Web Interface Running at 0.0.0.0:8080
+Oct 30 08:17:57 krakensdr sh[1258]: Data Out Server Running at 0.0.0.0:8081
+Oct 30 08:17:57 krakensdr sudo[1257]: pam_unix(sudo:session): session closed for user root
+Oct 30 08:17:57 krakensdr sudo[1271]:     root : PWD=/home/krakenrf/krakensdr_doa/krakensdr_doa ; USER=root ; COMMAND=/usr/bin/php -S 0.0.0.0:8081 -t _share
+Oct 30 08:17:57 krakensdr sudo[1271]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Oct 30 08:17:57 krakensdr sh[1117]: TAK Server Installed
+Oct 30 08:17:57 krakensdr systemd[1]: Started Start KrakenSDR Code.
