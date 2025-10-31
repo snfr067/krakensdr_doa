@@ -4,6 +4,7 @@ from variables import figure_font_size, x, y
 #from save_doa import saveDOA
 #import websockets
 
+
 def plot_doa(app, web_interface, doa_fig):
     if web_interface.reset_doa_graph_flag:
         doa_fig.data = []
@@ -94,6 +95,7 @@ def plot_doa(app, web_interface, doa_fig):
             result = web_interface.doa_results[0]
 
             update_data = dict(x=[thetas], y=[result])
+            #console.log("send angle: "+web_interface.doas[0]+"result:"+str(result))
             #saveDOA(web_interface.doas[0], str(result))
 
             if web_interface._doa_fig_type == "Polar":
