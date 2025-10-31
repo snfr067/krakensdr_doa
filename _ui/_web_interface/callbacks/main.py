@@ -419,17 +419,13 @@ def clear_cache_btn(input_value):
 
 
 @app.callback_shared(None, [Input("spectrum-graph", "clickData")])
-def click_to_set_freq_spectrum(click_data):
-    output = set_clicked(web_interface, click_data)
-    web_interface.save_configuration()
-    return output
+def click_to_set_freq_spectrum(clickData):
+    set_clicked(web_interface, clickData)
 
 
 @app.callback_shared(None, [Input("waterfall-graph", "clickData")])
-def click_to_set_waterfall_spectrum(click_data):
-    output = set_clicked(web_interface, click_data)
-    web_interface.save_configuration()
-    return output
+def click_to_set_waterfall_spectrum(clickData):
+    set_clicked(web_interface, clickData)
 
 
 # Enable custom input fields
