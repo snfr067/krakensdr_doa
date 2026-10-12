@@ -60,6 +60,14 @@ from variables import (
     status_file_path,
 )
 
+from pathlib import Path
+import importlib.util
+
+SAVE_DOA_PATH = Path(__file__).resolve().parents[2] / "_ui" / "_web_interface" / "save_doa.py"
+spec = importlib.util.spec_from_file_location("save_doa", SAVE_DOA_PATH)
+save_doa = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(save_doa)
+
 # os.environ['OPENBLAS_NUM_THREADS'] = '4'
 # os.environ['NUMBA_CPU_NAME'] = 'cortex-a72'
 
@@ -128,9 +136,42 @@ class SignalProcessor(threading.Thread):
         self.DOA_inter_elem_space = 0.5
         self.DOA_ant_alignment = "ULA"
         self.ula_direction = "Both"
-        self.DOA_theta = np.linspace(0, 359, 360)
-        self.custom_array_x = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
-        self.custom_array_y = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
+
+        # ===== 2D MUSIC L-SHAPED ARRAY PATCH BEGIN =====
+        self.DOA_2D_MUSIC_enabled = True
+
+        # Front hemisphere only.
+        # Internal coordinate:
+        # 0 deg = +X
+        # 90 deg = array front direction
+        # 180 deg = -X
+        self.DOA_azimuth = np.linspace(-90, 90, 181).astype(np.float32)
+
+        # Vertical front range.
+        # Keep full elevation front scan from -90 to +90.
+        self.DOA_elevation = np.linspace(-90, 90, 181).astype(np.float32)
+
+        self.DOA_theta = self.DOA_azimuth
+
+        # 5-channel L-shaped array.
+        # Physical layout:
+        # CH2
+        # CH1
+        # CH0  CH3  CH4
+        # Unit: wavelength ratio.
+        # Do not lock spacing here. Refresh it later from the latest web GUI setting.
+        self.custom_array_x = np.zeros(5, dtype=np.float32)
+        self.custom_array_y = np.zeros(5, dtype=np.float32)
+        self.custom_array_z = np.zeros(5, dtype=np.float32)
+
+        # 2D MUSIC spectrum: elevation x azimuth.
+        self.DOA_2D = np.ones((self.DOA_elevation.size, self.DOA_azimuth.size), dtype=np.complex64)
+
+        # Multi-source 2D MUSIC output.
+        # This list is refreshed inside estimate_DOA().
+        # Each item: {"azimuth": deg, "elevation": deg, "score": normalized_peak, "freq": Hz, "source_index": n}
+        self.doa_2d_sources = []
+        # ===== 2D MUSIC L-SHAPED ARRAY PATCH END =====
         self.array_offset = 0.0
         self.DOA_expected_num_of_sources = 1
         self.DOA_decorrelation_method = "Off"
@@ -217,6 +258,7 @@ class SignalProcessor(threading.Thread):
         self.doa_max_list = [-1] * self.max_vfos
 
         self.theta_0_list = []
+        self.elevation_0_list = []
         self.freq_list = []
         self.doa_result_log_list = []
         self.confidence_list = []
@@ -492,6 +534,7 @@ class SignalProcessor(threading.Thread):
                             doa_result_log = np.empty(0)
 
                             self.theta_0_list.clear()
+                            self.elevation_0_list.clear()
                             self.freq_list.clear()
                             self.doa_result_log_list.clear()
                             self.max_power_level_list.clear()
@@ -607,8 +650,71 @@ class SignalProcessor(threading.Thread):
                                     # print("IQ DIFFS: " + str(iq_diffs))
                                     # print("IQ DIFFS ANGLE: " + str(np.rad2deg(np.angle(iq_diffs))))
                                     #
-                                    theta_0 = self.estimate_DOA(vfo_channel, self.vfo_freq[i])
+                                    theta_0, elevation_0 = self.estimate_DOA(vfo_channel, self.vfo_freq[i])
+                                    print(f"[RAW 2D MUSIC] theta_0={theta_0:.2f}, elevation_0={elevation_0:.2f}")
 
+                                    if self.DOA_2D_MUSIC_enabled and self.DOA_algorithm == "MUSIC":
+                                        print(f"[2D DISPLAY OUT] primary_doa_out={theta_0:.2f}")
+                                    else:
+                                        print(f"[KRAKEN APP OUT] doa_out={360 - theta_0:.2f}")
+
+                                    # ===== 2D MUSIC MULTI-SOURCE OUTPUT PLACEHOLDER BEGIN =====
+                                    # Kraken native web UI writes:
+                                    #   ant_spacing_meter -> self.DOA_inter_elem_space
+                                    #   expected_num_of_sources -> self.DOA_expected_num_of_sources
+                                    # This block only reads those runtime values. It does not read a second config file.
+                                    if self.DOA_2D_MUSIC_enabled and self.DOA_algorithm == "MUSIC":
+                                        current_sources = self.doa_2d_sources if self.doa_2d_sources else [
+                                            {
+                                                "source_index": 1,
+                                                "azimuth": float(theta_0),
+                                                "elevation": float(elevation_0),
+                                                "score": 1.0,
+                                                "freq": int(self.vfo_freq[i]),
+                                            }
+                                        ]
+                                    else:
+                                        current_sources = [
+                                            {
+                                                "source_index": 1,
+                                                "azimuth": float(theta_0),
+                                                "elevation": 0.0,
+                                                "score": 1.0,
+                                                "freq": int(self.vfo_freq[i]),
+                                            }
+                                        ]
+
+                                    for src in current_sources:
+                                        src["freq"] = int(self.vfo_freq[i])
+                                        logging.info(
+                                            "[2D-MUSIC SOURCE %d] azimuth=%.2f, elevation=%.2f, score=%.3f, freq=%d"
+                                            % (
+                                                src.get("source_index", 1),
+                                                src.get("azimuth", 0.0),
+                                                src.get("elevation", 0.0),
+                                                src.get("score", 0.0),
+                                                src.get("freq", int(self.vfo_freq[i])),
+                                            )
+                                        )
+                                        print(
+                                            "[2D-MUSIC SOURCE %d] azimuth=%.2f, elevation=%.2f, score=%.3f, freq=%d"
+                                            % (
+                                                src.get("source_index", 1),
+                                                src.get("azimuth", 0.0),
+                                                src.get("elevation", 0.0),
+                                                src.get("score", 0.0),
+                                                src.get("freq", int(self.vfo_freq[i])),
+                                            )
+                                        )
+
+                                    # save_doa.save2DMUSIC(...) intentionally NOT called here.
+                                    # Save multi-source azimuth/elevation array for the native web program.
+                                    try:
+                                        save_doa.saveDOA_Multi(current_sources)
+                                    except Exception:
+                                        logging.error(traceback.format_exc())
+
+                                    # ===== 2D MUSIC MULTI-SOURCE OUTPUT PLACEHOLDER END =====
                                     if not numba_isfinite(self.DOA):
                                         logging.error("""Estimated DOA is not finite.""")
                                         continue
@@ -620,15 +726,31 @@ class SignalProcessor(threading.Thread):
                                     update_list[i] = True
 
                                     # DOA_str = str(int(theta_0))
-                                    DOA_str = str(int(360 - theta_0))  # Change to this, once we upload new Android APK
+                                    if self.DOA_2D_MUSIC_enabled and self.DOA_algorithm == "MUSIC":
+                                        DOA_str = str(int(theta_0))
+                                    else:
+                                        DOA_str = str(int(360 - theta_0))
                                     confidence_str = "{:.2f}".format(np.max(conf_val))
                                     max_power_level_str = "{:.1f}".format((np.maximum(-100, max_amplitude)))
 
-                                    self.theta_0_list.append(theta_0)
-                                    self.confidence_list.append(np.max(conf_val))
-                                    self.max_power_level_list.append(np.maximum(-100, max_amplitude))
-                                    self.freq_list.append(write_freq)
-                                    self.doa_result_log_list.append(doa_result_log)
+                                    # Store all 2D MUSIC sources for downstream output.
+                                    # For the legacy Kraken App stream, each source is emitted as one line with the same spectrum/confidence.
+                                    if self.DOA_2D_MUSIC_enabled and self.DOA_algorithm == "MUSIC":
+                                        sources_for_lists = current_sources
+                                    else:
+                                        sources_for_lists = [{"azimuth": theta_0, "elevation": elevation_0, "score": 1.0}]
+
+                                    for src in sources_for_lists:
+                                        src_theta = float(src.get("azimuth", theta_0))
+                                        src_elevation = float(src.get("elevation", elevation_0))
+                                        src_score = float(src.get("score", 1.0))
+
+                                        self.theta_0_list.append(src_theta)
+                                        self.elevation_0_list.append(src_elevation)
+                                        self.confidence_list.append(np.max(conf_val) * src_score)
+                                        self.max_power_level_list.append(np.maximum(-100, max_amplitude))
+                                        self.freq_list.append(write_freq)
+                                        self.doa_result_log_list.append(doa_result_log)
 
                                     if self.vfo_demod_modes[i] or self.vfo_iq_enabled[i]:
                                         if theta_0 not in self.vfo_theta_channel[i]:
@@ -665,6 +787,8 @@ class SignalProcessor(threading.Thread):
                             que_data_packet.append(["doa_thetas", self.DOA_theta])
                             que_data_packet.append(["DoA Result", doa_result_log])
                             que_data_packet.append(["DoA Max", theta_0])
+                            que_data_packet.append(["DoA Elevation", elevation_0])
+                            que_data_packet.append(["DoA Multi Sources", self.doa_2d_sources])
                             que_data_packet.append(["DoA Confidence", conf_val])
                             que_data_packet.append(["DoA Squelch", update_list])
                             que_data_packet.append(["DoA Max List", self.doa_max_list])
@@ -756,7 +880,15 @@ class SignalProcessor(threading.Thread):
                             for j, freq in enumerate(self.freq_list):
                                 # KrakenSDR Android App Output
                                 sub_message = ""
-                                sub_message += f"{self.timestamp}, {360 - self.theta_0_list[j]}, {self.confidence_list[j]}, {self.max_power_level_list[j]}, "
+                                doa_out = self.theta_0_list[j]
+
+                                if self.DOA_2D_MUSIC_enabled and self.DOA_algorithm == "MUSIC":
+                                    doa_out = self.theta_0_list[j]
+                                else:
+                                    doa_out = 360 - self.theta_0_list[j]
+
+                                sub_message += f"{self.timestamp}, {doa_out}, {self.confidence_list[j]}, {self.max_power_level_list[j]}, "
+
                                 sub_message += f"{freq}, {self.DOA_ant_alignment}, {self.latency}, {self.station_id}, "
                                 sub_message += f"{self.latitude}, {self.longitude}, {self.heading}, {self.heading}, "
                                 sub_message += "GPS, R, R, R, R"  # Reserve 6 entries for other things # NOTE: Second heading is reserved for GPS heading / compass heading differentiation
@@ -1008,6 +1140,40 @@ class SignalProcessor(threading.Thread):
             scanning_vectors = np.empty((0, 0))
 
         # DOA estimation
+
+        # ===== 2D MUSIC L-SHAPED ARRAY PATCH BEGIN =====
+        # Force 2D steering vectors for MUSIC.
+        if self.DOA_2D_MUSIC_enabled and self.DOA_algorithm == "MUSIC":
+            # Read the latest spacing already updated from the web GUI
+            d_2dmusic = np.float32(self.DOA_inter_elem_space)
+
+            # Physical layout:
+            # CH2
+            # CH1
+            # CH0  CH3  CH4
+            self.custom_array_x = np.array(
+                [0.0, 0.0, 0.0, d_2dmusic, 2.0 * d_2dmusic],
+                dtype=np.float32,
+            )
+            self.custom_array_y = np.array(
+                [0.0, 0.0, 0.0, 0.0, 0.0],
+                dtype=np.float32,
+            )
+            self.custom_array_z = np.array(
+                [0.0, d_2dmusic, 2.0 * d_2dmusic, 0.0, 0.0],
+                dtype=np.float32,
+            )
+
+            scanning_vectors = gen_scanning_vectors_2d(
+                M,
+                self.custom_array_x * frq_ratio,
+                self.custom_array_y * frq_ratio,
+                self.custom_array_z * frq_ratio,
+                self.DOA_azimuth,
+                self.DOA_elevation,
+            )
+        # ===== 2D MUSIC L-SHAPED ARRAY PATCH END =====
+
         if self.DOA_algorithm == "Bartlett":  # self.en_DOA_Bartlett:
             DOA_Bartlett_res = de.DOA_Bartlett(R, scanning_vectors)
             self.DOA = DOA_Bartlett_res
@@ -1023,7 +1189,85 @@ class SignalProcessor(threading.Thread):
             DOA_MUSIC_res = DOA_MUSIC(
                 R, scanning_vectors, signal_dimension=self.DOA_expected_num_of_sources
             )  # de.DOA_MUSIC(R, scanning_vectors, signal_dimension = 1)
-            self.DOA = DOA_MUSIC_res
+            if self.DOA_2D_MUSIC_enabled:
+                self.DOA_2D = DOA_MUSIC_res.reshape(
+                    (self.DOA_elevation.size, self.DOA_azimuth.size)
+                )
+
+                # Keep old GUI/output path alive by reducing 2D spectrum to a 1D azimuth spectrum.
+                self.DOA = np.max(np.abs(self.DOA_2D), axis=0).astype(np.complex64)
+
+                # Source count comes from Kraken native Web UI:
+                # expected_num_of_sources -> self.DOA_expected_num_of_sources
+                expected_sources_raw = self.DOA_expected_num_of_sources
+                try:
+                    expected_sources = int(expected_sources_raw)
+                except (TypeError, ValueError):
+                    expected_sources = 1
+                expected_sources = max(1, min(expected_sources, M - 1))
+
+                print(
+                    "[2D MUSIC RUNTIME CONFIG] "
+                    f"DOA_inter_elem_space={self.DOA_inter_elem_space}, "
+                    f"d_2dmusic={float(d_2dmusic)}, "
+                    f"DOA_expected_num_of_sources_raw={expected_sources_raw}, "
+                    f"expected_sources_used={expected_sources}, "
+                    f"M={M}"
+                )
+
+                # 1D horizontal / vertical spectra are only used as validation hints.
+                az_hints, el_hints = estimate_lshape_1d_hints(
+                    processed_signal,
+                    self.DOA_inter_elem_space,
+                    frq_ratio,
+                    expected_sources,
+                )
+
+                DOA_2D_abs = np.abs(self.DOA_2D)
+                self.doa_2d_sources = find_lshape_2d_music_sources(
+                    DOA_2D_abs,
+                    self.DOA_azimuth,
+                    self.DOA_elevation,
+                    expected_sources,
+                    az_hints,
+                    el_hints,
+                )
+
+                if not self.doa_2d_sources:
+                    peak_index = np.argmax(DOA_2D_abs)
+                    el_idx, az_idx = np.unravel_index(peak_index, self.DOA_2D.shape)
+                    self.doa_2d_sources = [
+                        {
+                            "source_index": 1,
+                            "azimuth": float(self.DOA_azimuth[az_idx]),
+                            "elevation": float(self.DOA_elevation[el_idx]),
+                            "score": 1.0,
+                        }
+                    ]
+
+                primary = self.doa_2d_sources[0]
+                azimuth_0 = float(primary["azimuth"])
+                elevation_0 = float(primary["elevation"])
+
+                print(
+                    f"[2D MULTI MUSIC] expected_sources={expected_sources}, "
+                    f"spacing_lambda={self.DOA_inter_elem_space:.3f}, "
+                    f"az_hints={az_hints}, el_hints={el_hints}"
+                )
+                for src in self.doa_2d_sources:
+                    print(
+                        "[2D MULTI MUSIC PICK] source=%d, azimuth=%.2f, elevation=%.2f, score=%.3f"
+                        % (
+                            src.get("source_index", 1),
+                            src.get("azimuth", 0.0),
+                            src.get("elevation", 0.0),
+                            src.get("score", 0.0),
+                        )
+                    )
+
+                return azimuth_0, elevation_0
+            else:
+                self.DOA = DOA_MUSIC_res
         if self.DOA_algorithm == "ROOT-MUSIC":
             is_vula = True if antennas_alignment == "VULA" else False
             doas = doa_root_music(
@@ -1051,7 +1295,7 @@ class SignalProcessor(threading.Thread):
         if self.DOA_algorithm != "ROOT-MUSIC":
             theta_0 = self.DOA_theta[np.argmax(self.DOA)]
 
-        return theta_0
+        return float(theta_0), 0.0
 
     # Enable GPS
     def enable_gps(self):
@@ -1401,6 +1645,41 @@ def DOA_TNA(R, scanning_vectors):
 
 # NUMBA optimized MUSIC function. About 100x faster on the Pi 4
 # @njit(fastmath=True, cache=True, parallel=True)
+
+# ===== 2D MUSIC L-SHAPED ARRAY PATCH BEGIN =====
+@njit(fastmath=True, cache=True)
+def gen_scanning_vectors_2d(M, custom_x, custom_y, custom_z, azimuths, elevations):
+    """
+    2D MUSIC steering vectors for azimuth/elevation search.
+    Output shape: (M, len(elevations) * len(azimuths))
+    Flatten order: point_idx = el_idx * azimuth_count + az_idx
+    """
+    az_count = azimuths.size
+    el_count = elevations.size
+    total_points = az_count * el_count
+
+    scanning_vectors = np.zeros((M, total_points), dtype=np.complex64)
+    complex_pi = 1j * 2.0 * np.pi
+    point_idx = 0
+
+    for el_idx in range(el_count):
+        el_rad = np.deg2rad(elevations[el_idx])
+        cos_el = np.cos(el_rad)
+        sin_el = np.sin(el_rad)
+
+        for az_idx in range(az_count):
+            az_rad = np.deg2rad(azimuths[az_idx])
+            ux = cos_el * np.sin(az_rad)
+            uy = cos_el * np.cos(az_rad)
+            uz = sin_el
+            for m in range(M):
+                phase = custom_x[m] * ux + custom_y[m] * uy + custom_z[m] * uz
+                scanning_vectors[m, point_idx] = np.exp(complex_pi * phase)
+
+            point_idx += 1
+
+    return np.ascontiguousarray(scanning_vectors)
+# ===== 2D MUSIC L-SHAPED ARRAY PATCH END =====
 @njit(fastmath=True, cache=True)
 def DOA_MUSIC(R, scanning_vectors, signal_dimension, angle_resolution=1):
     # --> Input check
@@ -1592,6 +1871,192 @@ def corr_matrix(X: np.ndarray) -> np.ndarray:
     R = np.dot(X, X.conj().T)
     R = np.divide(R, N)
     return R
+
+def estimate_horizontal_azimuth_hint(processed_signal, doa_inter_elem_space, frq_ratio):
+    """
+    Use CH0, CH3, CH4 as a 3-element horizontal ULA
+    to estimate the horizontal azimuth hint.
+
+    Output angle range: -90 ~ +90 deg
+    """
+    # Horizontal arm: CH0, CH3, CH4
+    X = np.ascontiguousarray(processed_signal[[0, 3, 4], :])
+
+    R_h = corr_matrix(X)
+
+    azimuths = np.linspace(-90, 90, 181).astype(np.float32)
+    d = np.float32(doa_inter_elem_space * frq_ratio)
+
+    x = np.array([0.0, d, 2.0 * d], dtype=np.float32)
+
+    scanning_vectors = np.zeros((3, azimuths.size), dtype=np.complex64)
+    complex_pi = 1j * 2.0 * np.pi
+
+    for i in range(azimuths.size):
+        az_rad = np.deg2rad(azimuths[i])
+        ux = np.sin(az_rad)
+        scanning_vectors[:, i] = np.exp(complex_pi * x * ux)
+
+    doa_h = DOA_MUSIC(R_h, scanning_vectors, signal_dimension=1)
+
+    az_hint = float(azimuths[np.argmax(np.abs(doa_h))])
+    return az_hint
+
+def _pick_1d_music_peaks(spectrum, angles, max_count, min_separation_deg=8.0):
+    """Pick separated 1D MUSIC peaks from a spectrum."""
+    spec = np.abs(spectrum)
+    if spec.size == 0:
+        return []
+
+    order = np.argsort(spec)[::-1]
+    selected = []
+    for idx in order:
+        angle = float(angles[idx])
+        if all(abs(angle - old_angle) >= min_separation_deg for old_angle in selected):
+            selected.append(angle)
+            if len(selected) >= max_count:
+                break
+    return selected
+
+
+def estimate_lshape_1d_hints(processed_signal, doa_inter_elem_space, frq_ratio, expected_sources):
+    """
+    Estimate separated horizontal and vertical 1D MUSIC peaks.
+
+    These are validation hints only. The final azimuth/elevation pairing still comes from 2D MUSIC.
+    Horizontal arm: CH0, CH3, CH4
+    Vertical arm:   CH0, CH1, CH2
+    """
+    if processed_signal.shape[0] < 5:
+        return [], []
+
+    signal_dimension_1d = max(1, min(int(expected_sources), 2))
+    d = np.float32(doa_inter_elem_space * frq_ratio)
+    complex_pi = 1j * 2.0 * np.pi
+
+    azimuths = np.linspace(-90, 90, 181).astype(np.float32)
+    elevations = np.linspace(-90, 90, 181).astype(np.float32)
+
+    # Horizontal arm: CH0, CH3, CH4
+    X_h = np.ascontiguousarray(processed_signal[[0, 3, 4], :])
+    R_h = corr_matrix(X_h)
+    x = np.array([0.0, d, 2.0 * d], dtype=np.float32)
+    sv_h = np.zeros((3, azimuths.size), dtype=np.complex64)
+    for i in range(azimuths.size):
+        az_rad = np.deg2rad(azimuths[i])
+        ux = np.sin(az_rad)
+        sv_h[:, i] = np.exp(complex_pi * x * ux)
+    doa_h = DOA_MUSIC(R_h, sv_h, signal_dimension=signal_dimension_1d)
+    az_hints = _pick_1d_music_peaks(doa_h, azimuths, expected_sources)
+
+    # Vertical arm: CH0, CH1, CH2
+    X_v = np.ascontiguousarray(processed_signal[[0, 1, 2], :])
+    R_v = corr_matrix(X_v)
+    z = np.array([0.0, d, 2.0 * d], dtype=np.float32)
+    sv_v = np.zeros((3, elevations.size), dtype=np.complex64)
+    for i in range(elevations.size):
+        el_rad = np.deg2rad(elevations[i])
+        uz = np.sin(el_rad)
+        sv_v[:, i] = np.exp(complex_pi * z * uz)
+    doa_v = DOA_MUSIC(R_v, sv_v, signal_dimension=signal_dimension_1d)
+    el_hints = _pick_1d_music_peaks(doa_v, elevations, expected_sources)
+
+    return az_hints, el_hints
+
+
+def find_lshape_2d_music_sources(
+    spectrum_2d_abs,
+    azimuths,
+    elevations,
+    expected_sources,
+    az_hints,
+    el_hints,
+    min_separation_deg=8.0,
+    hint_gate_deg=18.0,
+):
+    """
+    Pick multiple separated 2D MUSIC local peaks and use 1D hints to suppress mirror / cross-pair peaks.
+
+    Output is sorted by combined score, descending.
+    """
+    spec = np.asarray(spectrum_2d_abs, dtype=np.float64)
+    if spec.size == 0 or expected_sources <= 0:
+        return []
+
+    max_val = float(np.max(spec))
+    if max_val <= NEAR_ZERO:
+        return []
+
+    # Local maxima mask, excluding borders to avoid edge artifacts.
+    local_mask = np.ones_like(spec, dtype=bool)
+    local_mask[1:-1, 1:-1] = (
+        (spec[1:-1, 1:-1] >= spec[:-2, 1:-1])
+        & (spec[1:-1, 1:-1] >= spec[2:, 1:-1])
+        & (spec[1:-1, 1:-1] >= spec[1:-1, :-2])
+        & (spec[1:-1, 1:-1] >= spec[1:-1, 2:])
+        & (spec[1:-1, 1:-1] >= spec[:-2, :-2])
+        & (spec[1:-1, 1:-1] >= spec[:-2, 2:])
+        & (spec[1:-1, 1:-1] >= spec[2:, :-2])
+        & (spec[1:-1, 1:-1] >= spec[2:, 2:])
+    )
+    local_mask[0, :] = False
+    local_mask[-1, :] = False
+    local_mask[:, 0] = False
+    local_mask[:, -1] = False
+
+    candidate_indices = np.argwhere(local_mask)
+    if candidate_indices.size == 0:
+        candidate_indices = np.argwhere(spec > 0)
+
+    candidates = []
+    for el_idx, az_idx in candidate_indices:
+        raw_score = float(spec[el_idx, az_idx] / max_val)
+        if raw_score < 0.05:
+            continue
+
+        az = float(azimuths[az_idx])
+        el = float(elevations[el_idx])
+
+        az_ok = True if not az_hints else any(abs(az - hint) <= hint_gate_deg for hint in az_hints)
+        el_ok = True if not el_hints else any(abs(el - hint) <= hint_gate_deg for hint in el_hints)
+
+        # Strong candidates that match both 1D hints are preferred.
+        # If only one axis matches, keep it but reduce score so a true 2D peak is not thrown away too early.
+        if az_ok and el_ok:
+            validation_weight = 1.0
+        elif az_ok or el_ok:
+            validation_weight = 0.55
+        else:
+            validation_weight = 0.25
+
+        candidates.append((raw_score * validation_weight, raw_score, az, el))
+
+    candidates.sort(key=lambda item: item[0], reverse=True)
+
+    selected = []
+    for combined_score, raw_score, az, el in candidates:
+        too_close = False
+        for src in selected:
+            dist = math.sqrt((az - src["azimuth"]) ** 2 + (el - src["elevation"]) ** 2)
+            if dist < min_separation_deg:
+                too_close = True
+                break
+        if too_close:
+            continue
+
+        selected.append(
+            {
+                "source_index": len(selected) + 1,
+                "azimuth": az,
+                "elevation": el,
+                "score": float(combined_score),
+                "raw_score": float(raw_score),
+            }
+        )
+        if len(selected) >= int(expected_sources):
+            break
+
+    return selected
 
 
 # This is so-called "Rectification" or "Toeplizification" of correlation matrix method
